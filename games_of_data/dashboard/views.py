@@ -1,24 +1,35 @@
 from django.shortcuts import render,HttpResponse
 from plotly.offline import plot
-import plotly.graph_objs as go
+import plotly.graph_objects as go
+import plotly.express as px
 import openpyxl
 import pandas as pd
 import numpy as np
 from django.conf import settings
 from .models import Customer
+from .plotly import Plotly
 from django.core.files.storage import FileSystemStorage
 # Create your views here.
 
-dataframe = pd.DataFrame()
+
+
+def home(request):
+    return render(request, 'basic.html')
+
+
 def table_upload(request):
     if "GET" == request.method:
         return render(request, 'dashboard/tables.html', {})
     else:
         excel_file = request.FILES["excel_file"]
-        df = pd.read_excel(excel_file)
-        csv_file = df.to_csv(settings.MEDIA_ROOT+'/'+(excel_file.name).replace('.xlsx','.csv'))
-        # you may put validations here to check extension or file size
-        request.session['file'] = (excel_file.name).replace('.xlsx','.csv')
+        if('.xlsx' in excel_file.name):
+            df = pd.read_excel(excel_file)
+            csv_file = df.to_csv(settings.MEDIA_ROOT+'/'+(excel_file.name).replace('.xlsx','.csv'))
+            request.session['file'] = (excel_file.name).replace('.xlsx', '.csv')
+        else:
+            df = pd.read_excel(excel_file)
+            csv_file = df.to_csv(settings.MEDIA_ROOT + '/' + excel_file.name)
+            request.session['file'] = excel_file.name
 
         excel_data = list()
         excel_heading = list()
@@ -26,23 +37,15 @@ def table_upload(request):
         f = open(path, 'r')
         rows = []
         frow = list()
-        i = 0;
+        i = 0
         for row in f:
             if i == 0:
                 row = row[1:].strip('\n').split(',')
-                print(row)
                 excel_heading = row
                 i = 1
             else:
                 row = row.strip('\n').split(',')
-                print(row)
                 excel_data.append(row[1:])
-    # x_data = list(df["Country"])
-    # y_data = list(df["Profit"])
-    # plot_div = plot([go.Scatter(x=x_data, y=y_data,
-    #                          mode='markers+text', name='test',
-    #                          opacity=0.8)],
-    #                 output_type='div')
     return render(request, "dashboard/tables.html", context={
                                                            "excel_data":excel_data,
                                                            "excel_heading":excel_heading})
@@ -55,33 +58,69 @@ def show_table(request):
     f = open(path, 'r')
     rows = []
     frow = list()
-    i = 0;
+    i = 0
     for row in f:
         if i == 0:
             row = row[1:].strip('\n').split(',')
-            print(row)
             frow=row
             i=1
         else:
             row = row.strip('\n').split(',')
-            print(row)
             rows.append(row[1:])
     return render(request,'dashboard/show_table.html',context={'frow':frow,
                                                                'rows':rows})
 
+
+
+
+#graphs
+
 def chartjs(request):
     df = pd.read_csv(settings.MEDIA_ROOT + '/' + request.session.get('file'))
-    categ_columns = list(dataframe.select_dtypes(exclude=np.number).columns)
-    num_columns = list(dataframe.select_dtypes(include=np.number).columns)
-    return render(request,'dashboard/chart.html',{'categ_columns':categ_columns,
-                                                  'num_columns':num_columns})
+    columns = list(df.columns)
+    return render(request,'dashboard/chart.html',context = {'columns':columns[1:]})
+
+def chart(request):
+    df = pd.read_csv(settings.MEDIA_ROOT + '/' + request.session.get('file'))
+    columns = list(df.columns)
+    convert_dict = {request.POST.get('y'): int}
+
+    df = df.astype(convert_dict)
+
+
+    x = list(df[request.POST.get('x')])
+    #print(x)
+    print(request.POST.get('x'))
+    print(request.POST.get('y'))
+    y = list(df[request.POST.get('y')])
+    return render(request,'dashboard/chart.html',context = {'columns':columns[1:],
+                                                             'x':x[1:11],
+                                                             'y':y[1:11]})
+
+def plotly(request):
+    df = pd.read_csv(settings.MEDIA_ROOT + '/' + request.session.get('file'))
+    columns = list(df.columns)
+    return render(request,'dashboard/plotly.html',context = {'columns':columns[1:]})
+
+def plotly_chart(request):
+    df = pd.read_csv(settings.MEDIA_ROOT + '/' + request.session.get('file'))
+    columns = list(df.columns)
+    x = request.POST.get('x')
+    y = request.POST.get('y')
+    f = request.session.get('file')
+    plot_div = Plotly.violinwithbox(x,y,f)
+    return render(request, 'dashboard/plotly.html', context={'plot_div':plot_div,
+                                                             'columns':columns})
+
+
+
+#user login logout
 
 def login(request):
     return render(request,'login.html')
 
 def signup(request):
     return render(request, 'register.html')
-
 
 def register(request):
     fname = request.POST.get('firstname')
