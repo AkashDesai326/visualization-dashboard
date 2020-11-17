@@ -11,7 +11,15 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 import os
+import pymongo
 from pathlib import Path
+import urllib.parse
+
+mongouri = "mongodb+srv://AkshatMehta:" + urllib.parse.quote(
+    "AkshatMehtaProjectOne") + "@cluster0.9on8n.mongodb.net/cluster0?retryWrites=true&w=majority"
+mongodb_connection_string = 'mongodb://localhost:27017/'
+client = pymongo.MongoClient(mongouri)
+database = client['flipkart']
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,6 +50,7 @@ INSTALLED_APPS = [
     'bootstrap4',
     'dpd_static_support',
     'dashboard.apps.DashboardConfig',
+
 ]
 
 MIDDLEWARE = [
@@ -62,7 +71,7 @@ ROOT_URLCONF = 'games_of_data.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR,'templates')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -133,9 +142,9 @@ USE_TZ = True
 
 STATICFILES_LOCATION = 'static'
 STATIC_URL = '/static/'
-STATIC_ROOT= 'static'
+STATIC_ROOT = 'static'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR,'games_of_data/static')
+    os.path.join(BASE_DIR, 'games_of_data/static')
 ]
 
 PLOTLY_COMPONENTS = [
@@ -153,9 +162,10 @@ CHANNEL_LAYERS = {
         'CONFIG': {
             'hosts': [('127.0.0.1', 6379), ],
         },
-    },
+     },
 }
 
-
-MEDIA_ROOT = os.path.join(BASE_DIR,'games_of_data\static\media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'games_of_data\static\media')
 MEDIA_URL = 'media/'
+
+X_FRAME_OPTIONS = 'SAMEORIGIN'
